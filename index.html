@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraSound AI - 개인 맞춤형 백색소음 추천 시스템</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d',
+            },
+            accent: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Slider Style */
+    input[type=range] {
+      accent-color: #22c55e;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-light {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .animate-subtle {
+      animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Header / Navigation -->
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-accent-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">AuraSound AI</span>
+          <span class="text-xs text-slate-400 block -mt-1 font-medium">개인 맞춤형 백색소음 추천 시스템</span>
+        </div>
+      </div>
+
+      <!-- Nav Tabs -->
+      <nav class="hidden md:flex space-x-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-white bg-slate-800 shadow">
+          대시보드
+        </button>
+        <button onclick="switchTab('studio')" id="nav-studio" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white">
+          소리 제작 (스튜디오)
+        </button>
+        <button onclick="switchTab('recommend')" id="nav-recommend" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          AI 맞춤 추천
+        </button>
+        <button onclick="switchTab('feedback')" id="nav-feedback" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white">
+          만족도 평가
+        </button>
+        <button onclick="switchTab('mypage')" id="nav-mypage" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white">
+          취향 분석 (마이페이지)
+        </button>
+      </nav>
+
+      <!-- Quick Master Play / Pause Header Control -->
+      <div class="flex items-center space-x-3">
+        <div id="playingBadge" class="hidden items-center gap-2 px-2.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs text-brand-400 font-mono">
+          <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
+          <span id="sessionTimerText">00:00</span>
+        </div>
+        <button id="headerPlayBtn" onclick="togglePlayMaster()" class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition shadow-lg shadow-brand-600/25 active:scale-95">
+          <svg id="headerPlayIcon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+          </svg>
+          <span id="headerPlayText">재생</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Bar -->
+    <div class="md:hidden flex overflow-x-auto px-4 py-2 border-t border-slate-800/80 space-x-2 text-xs">
+      <button onclick="switchTab('dashboard')" class="px-3 py-1 rounded-lg bg-slate-800 text-white shrink-0">홈</button>
+      <button onclick="switchTab('studio')" class="px-3 py-1 rounded-lg bg-slate-900 text-slate-300 shrink-0">스튜디오</button>
+      <button onclick="switchTab('recommend')" class="px-3 py-1 rounded-lg bg-slate-900 text-slate-300 shrink-0">AI 추천</button>
+      <button onclick="switchTab('feedback')" class="px-3 py-1 rounded-lg bg-slate-900 text-slate-300 shrink-0">만족도평가</button>
+      <button onclick="switchTab('mypage')" class="px-3 py-1 rounded-lg bg-slate-900 text-slate-300 shrink-0">마이페이지</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- ======================================================== -->
+    <!-- 1. DASHBOARD TAB -->
+    <!-- ======================================================== -->
+    <section id="tab-dashboard" class="space-y-6">
+      <!-- Hero Banner -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950/40 p-6 sm:p-8 border border-slate-800 shadow-xl">
+        <div class="relative z-10 max-w-2xl space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+            ✨ AI 기반 개인 맞춤형 청각 환경 최적화
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+            나만의 취향을 학습하는 <br class="sm:hidden">
+            <span class="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">스마트 백색소음 AI</span>
+          </h1>
+          <p class="text-sm sm:text-base text-slate-300 leading-relaxed">
+            7가지 사운드를 원하는 비율로 자유롭게 합성하세요. 실제 재생 시간과 만족도 평가 데이터를 실시간으로 분석하여 들을수록 나에게 완벽해지는 최적의 소리를 추천합니다.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-3">
+            <button onclick="switchTab('recommend')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              AI 추천 소리 듣기
+            </button>
+            <button onclick="switchTab('studio')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-sm flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+              소리 직접 믹싱하기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat Summary Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card rounded-xl p-4 border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">누적 학습 피드백</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <span id="statFeedbacks" class="text-2xl font-bold text-white">0건</span>
+            <span class="text-xs text-emerald-400 font-mono">가중치 갱신 중</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div id="statFeedbacksBar" class="bg-brand-500 h-full rounded-full transition-all" style="width: 15%"></div>
+          </div>
+        </div>
+        <div class="glass-card rounded-xl p-4 border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">누적 청취 시간</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <span id="statListeningTime" class="text-2xl font-bold text-white">0분</span>
+            <span class="text-xs text-cyan-400 font-mono">실시간 반영</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div id="statTimeBar" class="bg-cyan-500 h-full rounded-full transition-all" style="width: 25%"></div>
+          </div>
+        </div>
+        <div class="glass-card rounded-xl p-4 border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">최고 선호 사운드</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <span id="statFavoriteSound" class="text-lg font-bold text-emerald-300 truncate">브라운 사운드</span>
+            <span id="statFavPct" class="text-xs text-slate-400 font-mono">35%</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2 truncate">저주파 집중 차폐 선호</p>
+        </div>
+        <div class="glass-card rounded-xl p-4 border border-slate-800">
+          <span class="text-xs text-slate-400 font-medium">평균 만족도 점수</span>
+          <div class="flex items-baseline justify-between mt-1">
+            <span id="statAvgRating" class="text-2xl font-bold text-yellow-400">4.8 / 5.0</span>
+            <span class="text-xs text-yellow-500">★★★★★</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-2">최적화 지수: 94%</p>
+        </div>
+      </div>
+
+      <!-- Quick AI Recommendation Highlight in Dashboard -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <h2 class="text-lg font-bold text-white">오늘의 AI 추천 소리 조합</h2>
+          </div>
+          <button onclick="switchTab('recommend')" class="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1">
+            전체 3가지 추천 보기 →
+          </button>
+        </div>
+        <div id="dashboardFeaturedRec" class="bg-slate-900/80 rounded-xl p-5 border border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ======================================================== -->
+    <!-- 2. SOUND STUDIO / MIXER TAB -->
+    <!-- ======================================================== -->
+    <section id="tab-studio" class="hidden space-y-6">
+      
+      <!-- Top Audio Controls Bar -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          
+          <!-- Master Play & Volume -->
+          <div class="flex items-center gap-4">
+            <button onclick="togglePlayMaster()" class="w-12 h-12 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center shadow-lg shadow-brand-600/30 transition transform active:scale-95 shrink-0">
+              <svg id="studioPlayIcon" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-white">마스터 볼륨</span>
+                <span id="masterVolLabel" class="text-xs font-mono text-brand-400">70%</span>
+              </div>
+              <input type="range" id="masterVolume" min="0" max="100" value="70" oninput="updateMasterVolume(this.value)" class="w-36 sm:w-48 h-2 bg-slate-800 rounded-lg cursor-pointer">
+            </div>
+          </div>
+
+          <!-- Fade Effects & Reset & Presets -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="applyFade(true)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700 transition">
+              페이드 인 (2초)
+            </button>
+            <button onclick="applyFade(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700 transition">
+              페이드 아웃 (2초)
+            </button>
+            <button onclick="resetMixer()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-xs font-medium text-red-400 border border-red-900/40 transition">
+              믹서 초기화
+            </button>
+            <button onclick="openSavePresetModal()" class="px-3 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-xs font-medium text-emerald-300 border border-emerald-700/50 transition">
+              💾 내 소리로 저장
+            </button>
+          </div>
+        </div>
+
+        <!-- Master Acoustic Filters (EQ: Bass, Treble, Smoothness) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-800/80">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">저음 조절 (Bass)</span>
+              <span id="bassLabel" class="font-mono text-cyan-400">0.0 dB</span>
+            </div>
+            <input type="range" id="bassSlider" min="-12" max="12" step="0.5" value="0" oninput="updateEQ('bass', this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">고음 조절 (Treble)</span>
+              <span id="trebleLabel" class="font-mono text-cyan-400">0.0 dB</span>
+            </div>
+            <input type="range" id="trebleSlider" min="-12" max="12" step="0.5" value="0" oninput="updateEQ('treble', this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">소리 부드러움 / 톤 (Smoothness)</span>
+              <span id="smoothLabel" class="font-mono text-cyan-400">50%</span>
+            </div>
+            <input type="range" id="smoothSlider" min="10" max="100" value="50" oninput="updateEQ('smoothness', this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Audio Visualizer Canvas -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 relative">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
+            <span class="text-xs font-semibold text-slate-300">실시간 음향 스펙트럼 및 파형 분석 (Web Audio Visualizer)</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="setVisualizerMode('waveform')" id="vizWaveBtn" class="text-[11px] px-2 py-0.5 rounded bg-brand-600 text-white font-medium">파형</button>
+            <button onclick="setVisualizerMode('frequency')" id="vizFreqBtn" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">주파수</button>
+          </div>
+        </div>
+        <canvas id="visualizerCanvas" class="w-full h-28 sm:h-36 rounded-xl bg-slate-950/90 border border-slate-900"></canvas>
+      </div>
+
+      <!-- Real-time Mixing Ratio Bar -->
+      <div class="glass-card rounded-xl p-4 border border-slate-800 space-y-2">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-slate-300 font-medium">실시간 사운드 믹싱 비율 (Mixing Composition)</span>
+          <span id="activeSoundCountBadge" class="text-slate-400">활성 소리: 0개</span>
+        </div>
+        <div id="ratioBarContainer" class="w-full h-4 bg-slate-900 rounded-full flex overflow-hidden border border-slate-800">
+          <!-- Dynamically populated ratio segments -->
+        </div>
+        <div id="ratioLegendContainer" class="flex flex-wrap gap-3 text-xs text-slate-400 pt-1">
+          <!-- Dynamically populated legend badges -->
+        </div>
+      </div>
+
+      <!-- Optional: MP3 Audio Files Direct Loader Section -->
+      <div class="glass-card rounded-xl p-3 sm:p-4 border border-slate-800/80 bg-slate-900/40">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </span>
+            <div>
+              <span class="text-xs font-semibold text-slate-200">실제 MP3 파일 로드 지원 (옵션)</span>
+              <p class="text-[11px] text-slate-400">기본적으로 정밀 Web Audio 프로시저럴 합성이 동작하며, 사용자의 Downloads 폴더에 있는 MP3 파일을 직접 선택해 연동할 수도 있습니다.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <label class="cursor-pointer px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-medium transition flex items-center gap-1.5">
+              <span>MP3 파일 다중 선택</span>
+              <input type="file" id="localMp3Input" multiple accept="audio/*" onchange="handleLocalFiles(event)" class="hidden">
+            </label>
+            <span id="loadedMp3Count" class="text-xs font-mono text-cyan-300">합성 모드 활성</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 Sound Selection & Mixing Cards -->
+      <div class="space-y-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span>7가지 소리 선택 및 개별 볼륨 조절</span>
+          <span class="text-xs font-normal text-slate-400">(여러 소리를 동시에 켜서 나만의 소리로 합성하세요)</span>
+        </h3>
+        
+        <div id="soundCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- 7 sound cards injected by JavaScript -->
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================== -->
+    <!-- 3. AI RECOMMENDATION TAB -->
+    <!-- ======================================================== -->
+    <section id="tab-recommend" class="hidden space-y-6">
+      
+      <!-- AI Header -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span>
+            <h2 class="text-xl font-bold text-white">AI 개인 맞춤형 백색소음 추천</h2>
+          </div>
+          <button onclick="recalculateAIRecommendations()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700 transition flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            추천 다시 계산
+          </button>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          사용자가 지금까지 자주 선택한 소리 종류, 선호 볼륨과 믹싱 비율, 주파수 조절 성향, 만족도 평가를 학습하여 현재 상황에 최적화된 3가지 맞춤 조합을 제안합니다.
+        </p>
+      </div>
+
+      <!-- 3 Recommendation Cards -->
+      <div id="aiRecommendationsContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Rendered by JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================== -->
+    <!-- 4. SATISFACTION EVALUATION TAB -->
+    <!-- ======================================================== -->
+    <section id="tab-feedback" class="hidden space-y-6">
+      
+      <div class="max-w-2xl mx-auto glass-card rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
+        
+        <div class="border-b border-slate-800 pb-4">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 text-xs font-medium mb-2">
+            ⭐ 학습 피드백 수집
+          </div>
+          <h2 class="text-xl font-bold text-white">현재 소리 조합 만족도 평가</h2>
+          <p class="text-xs text-slate-400 mt-1">
+            소리를 들으신 후 평가를 제출해주시면, AI가 불만족 요인을 분석하여 다음 추천 조합을 자동으로 미세 조정 및 최적화합니다.
+          </p>
+          <div class="flex items-center gap-3 mt-3 text-xs font-mono text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+            <span>현재 재생 시간: <strong id="feedbackDuration" class="text-emerald-400 font-bold">0분 0초</strong></span>
+            <span>|</span>
+            <span>활성 사운드: <strong id="feedbackActiveSounds" class="text-cyan-400">없음</strong></span>
+          </div>
+        </div>
+
+        <form id="satisfactionForm" onsubmit="handleFeedbackSubmit(event)" class="space-y-6">
+          
+          <!-- 1. Star Rating (1 to 5) -->
+          <div class="space-y-2">
+            <label class="block text-sm font-semibold text-slate-200">1. 현재 소리 조합에 대한 종합 만족도 (1~5점)</label>
+            <div class="flex items-center gap-3" id="starRatingContainer">
+              <button type="button" onclick="setStarRating(1)" class="star-btn text-3xl text-slate-600 hover:text-yellow-400 transition" data-val="1">★</button>
+              <button type="button" onclick="setStarRating(2)" class="star-btn text-3xl text-slate-600 hover:text-yellow-400 transition" data-val="2">★</button>
+              <button type="button" onclick="setStarRating(3)" class="star-btn text-3xl text-slate-600 hover:text-yellow-400 transition" data-val="3">★</button>
+              <button type="button" onclick="setStarRating(4)" class="star-btn text-3xl text-slate-600 hover:text-yellow-400 transition" data-val="4">★</button>
+              <button type="button" onclick="setStarRating(5)" class="star-btn text-3xl text-yellow-400 transition" data-val="5">★</button>
+              <span id="starRatingLabel" class="text-xs font-semibold text-yellow-400 ml-2">5점 - 매우 만족</span>
+            </div>
+            <input type="hidden" id="selectedStarValue" value="5">
+          </div>
+
+          <!-- 2. Acoustic Characteristics Balance Check -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">소리 크기</label>
+              <select id="fbVolume" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 focus:border-brand-500 outline-none">
+                <option value="optimal">적당함 (Optimal)</option>
+                <option value="too_loud">소리가 너무 큼</option>
+                <option value="too_quiet">소리가 너무 작음</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">저음 (Bass) 밸런스</label>
+              <select id="fbBass" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 focus:border-brand-500 outline-none">
+                <option value="optimal">적당함 (Balanced)</option>
+                <option value="too_strong">저음이 너무 강함</option>
+                <option value="too_weak">저음이 너무 약함</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">고음 (Treble) 밸런스</label>
+              <select id="fbTreble" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 focus:border-brand-500 outline-none">
+                <option value="optimal">적당함 (Balanced)</option>
+                <option value="too_sharp">고음이 너무 날카로움</option>
+                <option value="too_dull">고음이 답답/둔탁함</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 3. Monotony Checkbox -->
+          <div class="flex items-center gap-2 p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+            <input type="checkbox" id="fbMonotonous" class="w-4 h-4 rounded text-brand-500 focus:ring-0 bg-slate-800 border-slate-700">
+            <label for="fbMonotonous" class="text-xs text-slate-300 cursor-pointer">
+              소리가 너무 단조롭게 느껴집니다. (자연/앰비언트 사운드와 리듬감 추가 요청)
+            </label>
+          </div>
+
+          <!-- 4. Add / Remove Preferences & Desired Mood -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">추가하고 싶은 소리</label>
+              <select id="fbAddSound" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 focus:border-brand-500 outline-none">
+                <option value="">(선택 안함)</option>
+                <option value="brown_noise">브라운 사운드</option>
+                <option value="pink_noise">핑크 사운드</option>
+                <option value="white_noise">화이트 사운드</option>
+                <option value="nature_wind">자연(바람) 소리</option>
+                <option value="water_river">물(강물) 소리</option>
+                <option value="bird_rain">새소리/빗소리</option>
+                <option value="campfire">모닥불 소리</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">빼고 싶은 소리</label>
+              <select id="fbRemoveSound" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 focus:border-brand-500 outline-none">
+                <option value="">(선택 안함)</option>
+                <option value="brown_noise">브라운 사운드</option>
+                <option value="pink_noise">핑크 사운드</option>
+                <option value="white_noise">화이트 사운드</option>
+                <option value="nature_wind">자연(바람) 소리</option>
+                <option value="water_river">물(강물) 소리</option>
+                <option value="bird_rain">새소리/빗소리</option>
+                <option value="campfire">모닥불 소리</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-medium mb-1.5">다음에 듣고 싶은 분위기</label>
+              <select id="fbDesiredMood" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200 focus:border-brand-500 outline-none">
+                <option value="focus">깊은 집중 (Focus)</option>
+                <option value="sleep">편안한 수면 (Sleep)</option>
+                <option value="relax">스트레스 해소 (Healing)</option>
+                <option value="reading">독서 및 잔잔함 (Reading)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 5. User Detailed Comment -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">어떤 부분을 변경하고 싶은지 자유롭게 작성해주세요 (선택)</label>
+            <textarea id="fbDetails" rows="2" placeholder="예: 물소리가 조금 더 잔잔했으면 좋겠고, 모닥불 소리가 조금 더 뚜렷하면 좋겠습니다." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:border-brand-500 outline-none"></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white font-semibold text-sm transition shadow-lg shadow-brand-600/25 active:scale-[0.99] flex items-center justify-center gap-2">
+            <span>평가 제출 및 AI 맞춤 모델 재학습</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </button>
+        </form>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================== -->
+    <!-- 5. MY PAGE (TASTE ANALYSIS & PRESETS) TAB -->
+    <!-- ======================================================== -->
+    <section id="tab-mypage" class="hidden space-y-6">
+      
+      <!-- Top Profile Overview -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs text-brand-400 font-semibold">User Acoustic Profile</span>
+          <h2 class="text-xl font-bold text-white mt-1">나의 소리 청각 취향 분석</h2>
+          <p class="text-xs text-slate-400 mt-1">AI가 분석한 나의 주파수 선호도 및 7가지 사운드 친밀도 매트릭스</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="exportUserData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700 transition">
+            📥 데이터 백업 (JSON)
+          </button>
+          <label class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700 transition cursor-pointer">
+            📤 데이터 불러오기
+            <input type="file" accept=".json" onchange="importUserData(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- Preference Radar / Bar Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Sound Weight Ranking -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <h3 class="text-sm font-bold text-slate-200">사운드별 학습 선호도 가중치 (%)</h3>
+          <div id="soundPreferenceBars" class="space-y-3">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <!-- Frequency & Acoustic EQ Profile -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <h3 class="text-sm font-bold text-slate-200">선호 주파수 및 음향 특성 분석</h3>
+          <div class="space-y-4 pt-2">
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>저음(Bass) 친화도</span>
+                <span id="profileBassVal" class="font-mono text-cyan-400">+2.5 dB</span>
+              </div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div id="profileBassBar" class="bg-cyan-500 h-full rounded-full" style="width: 65%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>고음(Treble) 수용도</span>
+                <span id="profileTrebleVal" class="font-mono text-emerald-400">-0.5 dB</span>
+              </div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div id="profileTrebleBar" class="bg-emerald-500 h-full rounded-full" style="width: 45%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>선호 부드러움 지수</span>
+                <span id="profileSmoothVal" class="font-mono text-purple-400">65%</span>
+              </div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div id="profileSmoothBar" class="bg-purple-500 h-full rounded-full" style="width: 65%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed mt-4">
+            <span class="font-semibold text-brand-400">💡 종합 AI 프로파일 리포트:</span>
+            <p id="profileSummaryText" class="mt-1">
+              저주파 대역의 브라운 노이즈와 안정적인 물소리에 강한 친밀도를 보이며, 귀에 거슬리지 않는 부드러운 고주파 필터링을 선호합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved Presets & Evaluation History -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- My Saved Presets -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-200">내가 저장한 소리 프리셋</h3>
+            <span id="savedPresetsCount" class="text-xs text-slate-400">0개 저장됨</span>
+          </div>
+          <div id="savedPresetsList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            <p class="text-xs text-slate-500">저장된 나만의 프리셋이 없습니다. 스튜디오에서 소리를 믹싱한 뒤 '내 소리로 저장'을 눌러보세요.</p>
+          </div>
+        </div>
+
+        <!-- Evaluation History Logs -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-200">최근 만족도 평가 이력</h3>
+            <span id="historyLogCount" class="text-xs text-slate-400">0건</span>
+          </div>
+          <div id="feedbackHistoryList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            <p class="text-xs text-slate-500">평가 이력이 아직 없습니다.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Save Preset Modal -->
+  <div id="savePresetModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-slate-700 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-bold text-white">현재 조합을 프리셋으로 저장</h3>
+        <button onclick="closeSavePresetModal()" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-300 font-medium mb-1">프리셋 이름</label>
+        <input type="text" id="presetNameInput" placeholder="예: 밤샘 코딩 집중 믹스" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeSavePresetModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300">취소</button>
+        <button onclick="confirmSavePreset()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white">저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastMessage" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-medium shadow-2xl flex items-center gap-2">
+    <span id="toastIcon">✨</span>
+    <span id="toastText">알림 내용</span>
+  </div>
+
+  <!-- Core Sound & AI Engine Script -->
+  <script>
+    /* =====================================================================
+       1. SOUND METADATA DEFINITION (7 Core Sounds)
+       ===================================================================== */
+    const SOUNDS = [
+      {
+        id: "brown_noise",
+        nameKo: "브라운 사운드",
+        nameEn: "Brown Noise",
+        category: "Noise",
+        icon: "🍂",
+        color: "#ca8a04",
+        desc: "깊고 묵직한 저주파 노이즈로 뇌파를 가라앉히고 심리적 안정과 깊은 집중에 탁월합니다.",
+        defaultVol: 60,
+        spectral: "저주파 (-6dB/oct)"
+      },
+      {
+        id: "pink_noise",
+        nameKo: "핑크 사운드",
+        nameEn: "Pink Noise",
+        category: "Noise",
+        icon: "🌸",
+        color: "#ec4899",
+        desc: "1/f 뇌파 동조 특성을 가진 균형 잡힌 노이즈로 숙면 유도 및 스트레스 완화에 이상적입니다.",
+        defaultVol: 50,
+        spectral: "자연주파수 (-3dB/oct)"
+      },
+      {
+        id: "white_noise",
+        nameKo: "화이트 사운드",
+        nameEn: "White Noise",
+        category: "Noise",
+        icon: "☁️",
+        color: "#38bdf8",
+        desc: "모든 가청 주파수가 균일하여 도서관이나 카페의 대화 소리를 완벽히 마스킹합니다.",
+        defaultVol: 40,
+        spectral: "전체 균일 (0dB/oct)"
+      },
+      {
+        id: "nature_wind",
+        nameKo: "자연(바람) 소리",
+        nameEn: "Nature Sounds",
+        category: "Nature",
+        icon: "🍃",
+        color: "#10b981",
+        desc: "부드럽게 스치는 숲속 바람과 나뭇잎 소리가 답답한 실내 공간에 생기를 줍니다.",
+        defaultVol: 45,
+        spectral: "유기적 저중주파수"
+      },
+      {
+        id: "water_river",
+        nameKo: "물(강물) 소리",
+        nameEn: "Water Sounds",
+        category: "Nature",
+        icon: "💧",
+        color: "#0284c7",
+        desc: "시원하게 흐르는 시냇물과 강물의 청량한 리듬으로 긴장을 완화하고 잡념을 없앱니다.",
+        defaultVol: 50,
+        spectral: "연속 흐름 밴드패스"
+      },
+      {
+        id: "bird_rain",
+        nameKo: "새소리 / 빗소리",
+        nameEn: "Bird / Rain Sounds",
+        category: "Nature",
+        icon: "🌧️",
+        color: "#6366f1",
+        desc: "촉촉한 빗방울과 맑은 숲속 새소리가 어우러져 아늑한 감성 공간을 연출합니다.",
+        defaultVol: 40,
+        spectral: "감성 고주파 스펙트럼"
+      },
+      {
+        id: "campfire",
+        nameKo: "모닥불 소리",
+        nameEn: "Fireplace Sounds",
+        category: "Ambient",
+        icon: "🔥",
+        color: "#f97316",
+        desc: "장작이 타닥타닥 타오르는 따스한 크랙클 사운드로 공간의 단조로움을 없애줍니다.",
+        defaultVol: 45,
+        spectral: "따스한 랜덤 트랜지언트"
+      }
+    ];
+
+    /* =====================================================================
+       2. WEB AUDIO API SYNTHESIS & MIXER ENGINE
+       ===================================================================== */
+    let audioCtx = null;
+    let masterGain = null;
+    let bassFilter = null;
+    let trebleFilter = null;
+    let smoothFilter = null;
+    let analyser = null;
+    let isMasterPlaying = false;
+
+    // Track state for each sound
+    const soundStates = {};
+    SOUNDS.forEach(s => {
+      soundStates[s.id] = {
+        enabled: s.id === "brown_noise" || s.id === "water_river", // default brown + river on
+        volume: s.defaultVol,
+        gainNode: null,
+        synthSource: null,
+        bufferNode: null,
+        audioBuffer: null, // If local mp3 loaded
+        mode: "synth" // "synth" or "file"
+      };
+    });
+
+    let masterVolumeVal = 70;
+    let bassEQVal = 0.0;
+    let trebleEQVal = 0.0;
+    let smoothVal = 50;
+
+    // Session playback timer
+    let sessionSeconds = 0;
+    let sessionInterval = null;
+
+    function initAudioContext() {
+      if (audioCtx) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+
+      // Master Analyser
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+
+      // Master Gain
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(masterVolumeVal / 100, audioCtx.currentTime);
+
+      // Master EQ Filters
+      bassFilter = audioCtx.createBiquadFilter();
+      bassFilter.type = "lowshelf";
+      bassFilter.frequency.setValueAtTime(220, audioCtx.currentTime);
+      bassFilter.gain.setValueAtTime(bassEQVal, audioCtx.currentTime);
+
+      trebleFilter = audioCtx.createBiquadFilter();
+      trebleFilter.type = "highshelf";
+      trebleFilter.frequency.setValueAtTime(3200, audioCtx.currentTime);
+      trebleFilter.gain.setValueAtTime(trebleEQVal, audioCtx.currentTime);
+
+      smoothFilter = audioCtx.createBiquadFilter();
+      smoothFilter.type = "lowpass";
+      updateSmoothFilterFrequency(smoothVal);
+
+      // Audio Graph: Channel Gain -> Bass -> Treble -> Smooth -> MasterGain -> Analyser -> Destination
+      bassFilter.connect(trebleFilter);
+      trebleFilter.connect(smoothFilter);
+      smoothFilter.connect(masterGain);
+      masterGain.connect(analyser);
+      analyser.connect(audioCtx.destination);
+
+      // Create GainNodes for each sound
+      SOUNDS.forEach(s => {
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(
+          soundStates[s.id].enabled ? (soundStates[s.id].volume / 100) : 0, 
+          audioCtx.currentTime
+        );
+        gain.connect(bassFilter);
+        soundStates[s.id].gainNode = gain;
+      });
+
+      startVisualizer();
+    }
+
+    function updateSmoothFilterFrequency(val) {
+      if (!smoothFilter || !audioCtx) return;
+      // Val 10~100 -> Cutoff 1200Hz ~ 18000Hz (Smooth means lower cutoff)
+      // When val is 100% -> very soft (2500Hz), when 10% -> crisp (16000Hz)
+      const freq = 18000 - ((val - 10) / 90) * 15000;
+      smoothFilter.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    }
+
+    /* Procedural Audio Synthesis Generators for Web Audio */
+    function createSoundSource(soundId) {
+      if (!audioCtx) return null;
+      const bufferSize = audioCtx.sampleRate * 2; // 2-second looping buffer
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      if (soundId === "white_noise") {
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+      } 
+      else if (soundId === "pink_noise") {
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+          b6 = white * 0.115926;
+        }
+      } 
+      else if (soundId === "brown_noise") {
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          data[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = data[i];
+          data[i] *= 3.5; // Gain compensation
+        }
+      }
+      else if (soundId === "nature_wind") {
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          lastOut = (lastOut + (0.04 * white)) / 1.04;
+          // Gentle gust modulation
+          const lfo = Math.sin(2 * Math.PI * (i / bufferSize) * 1.5) * 0.3 + 0.7;
+          data[i] = lastOut * lfo * 2.8;
+        }
+      }
+      else if (soundId === "water_river") {
+        let b0 = 0, b1 = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.85 * b0 + white * 0.15;
+          b1 = 0.92 * b1 + b0 * 0.08;
+          const ripple = Math.sin(2 * Math.PI * (i / bufferSize) * 4) * 0.2 + 0.8;
+          data[i] = b1 * ripple * 3.2;
+        }
+      }
+      else if (soundId === "bird_rain") {
+        // Rain droplets and soft splashes
+        let last = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          last = 0.6 * last + 0.4 * white;
+          // random droplet clicks
+          const drop = (Math.random() > 0.997) ? (Math.random() * 0.8) : 0;
+          data[i] = (last * 0.3 + drop) * 1.5;
+        }
+      }
+      else if (soundId === "campfire") {
+        let last = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          last = (last + (0.03 * white)) / 1.03;
+          // Crackle popping impulse
+          const pop = (Math.random() > 0.998) ? ((Math.random() * 2 - 1) * 0.9) : 0;
+          data[i] = (last * 1.8 + pop) * 1.6;
+        }
+      }
+
+      const sourceNode = audioCtx.createBufferSource();
+      sourceNode.buffer = buffer;
+      sourceNode.loop = true;
+      return sourceNode;
+    }
+
+    function togglePlayMaster() {
+      initAudioContext();
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      if (!isMasterPlaying) {
+        // Start all active sources
+        SOUNDS.forEach(s => {
+          startChannelAudio(s.id);
+        });
+        isMasterPlaying = true;
+        startSessionTimer();
+        showToast("백색소음 재생을 시작합니다.", "▶️");
+      } else {
+        // Stop all sources
+        SOUNDS.forEach(s => {
+          stopChannelAudio(s.id);
+        });
+        isMasterPlaying = false;
+        pauseSessionTimer();
+        showToast("재생을 일시정지했습니다.", "⏸️");
+      }
+      updatePlayButtonsUI();
+    }
+
+    function startChannelAudio(sid) {
+      if (!audioCtx) return;
+      stopChannelAudio(sid); // Clean up existing
+
+      const st = soundStates[sid];
+      let node;
+
+      if (st.mode === "file" && st.audioBuffer) {
+        node = audioCtx.createBufferSource();
+        node.buffer = st.audioBuffer;
+        node.loop = true;
+      } else {
+        node = createSoundSource(sid);
+      }
+
+      if (node) {
+        node.connect(st.gainNode);
+        node.start();
+        st.synthSource = node;
+        st.gainNode.gain.setValueAtTime(st.enabled ? (st.volume / 100) : 0, audioCtx.currentTime);
+      }
+    }
+
+    function stopChannelAudio(sid) {
+      const st = soundStates[sid];
+      if (st.synthSource) {
+        try {
+          st.synthSource.stop();
+          st.synthSource.disconnect();
+        } catch(e){}
+        st.synthSource = null;
+      }
+    }
+
+    function toggleSoundActive(sid) {
+      initAudioContext();
+      const st = soundStates[sid];
+      st.enabled = !st.enabled;
+
+      if (audioCtx && st.gainNode) {
+        const targetVol = st.enabled ? (st.volume / 100) : 0;
+        st.gainNode.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.05);
+      }
+
+      if (isMasterPlaying && st.enabled && !st.synthSource) {
+        startChannelAudio(sid);
+      }
+
+      renderSoundCards();
+      updateMixerRatios();
+    }
+
+    function updateSoundVolume(sid, val) {
+      initAudioContext();
+      const st = soundStates[sid];
+      st.volume = parseInt(val, 10);
+      document.getElementById(`vol-label-${sid}`).innerText = `${st.volume}%`;
+
+      if (audioCtx && st.gainNode && st.enabled) {
+        st.gainNode.gain.setTargetAtTime(st.volume / 100, audioCtx.currentTime, 0.05);
+      }
+      updateMixerRatios();
+    }
+
+    function updateMasterVolume(val) {
+      masterVolumeVal = parseInt(val, 10);
+      document.getElementById("masterVolLabel").innerText = `${masterVolumeVal}%`;
+      if (audioCtx && masterGain) {
+        masterGain.gain.setTargetAtTime(masterVolumeVal / 100, audioCtx.currentTime, 0.05);
+      }
+    }
+
+    function updateEQ(type, val) {
+      initAudioContext();
+      if (type === "bass") {
+        bassEQVal = parseFloat(val);
+        document.getElementById("bassLabel").innerText = `${bassEQVal > 0 ? '+' : ''}${bassEQVal.toFixed(1)} dB`;
+        if (bassFilter) bassFilter.gain.setTargetAtTime(bassEQVal, audioCtx.currentTime, 0.05);
+      } else if (type === "treble") {
+        trebleEQVal = parseFloat(val);
+        document.getElementById("trebleLabel").innerText = `${trebleEQVal > 0 ? '+' : ''}${trebleEQVal.toFixed(1)} dB`;
+        if (trebleFilter) trebleFilter.gain.setTargetAtTime(trebleEQVal, audioCtx.currentTime, 0.05);
+      } else if (type === "smoothness") {
+        smoothVal = parseInt(val, 10);
+        document.getElementById("smoothLabel").innerText = `${smoothVal}%`;
+        updateSmoothFilterFrequency(smoothVal);
+      }
+    }
+
+    function applyFade(isFadeIn) {
+      initAudioContext();
+      if (!isMasterPlaying && isFadeIn) {
+        togglePlayMaster();
+      }
+      if (!masterGain) return;
+      const now = audioCtx.currentTime;
+      masterGain.gain.cancelScheduledValues(now);
+
+      if (isFadeIn) {
+        masterGain.gain.setValueAtTime(0.001, now);
+        masterGain.gain.exponentialRampToValueAtTime(masterVolumeVal / 100, now + 2.0);
+        showToast("페이드 인 적용 (2초 동안 서서히 증가)", "📈");
+      } else {
+        masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+        masterGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+        setTimeout(() => {
+          if (isMasterPlaying) togglePlayMaster();
+          masterGain.gain.setValueAtTime(masterVolumeVal / 100, audioCtx.currentTime);
+        }, 2100);
+        showToast("페이드 아웃 적용 (2초 동안 서서히 감소)", "📉");
+      }
+    }
+
+    function resetMixer() {
+      SOUNDS.forEach(s => {
+        soundStates[s.id].enabled = false;
+        soundStates[s.id].volume = s.defaultVol;
+        if (soundStates[s.id].gainNode && audioCtx) {
+          soundStates[s.id].gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        }
+      });
+      // Enable default brown + river
+      soundStates["brown_noise"].enabled = true;
+      soundStates["water_river"].enabled = true;
+      if (audioCtx) {
+        soundStates["brown_noise"].gainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
+        soundStates["water_river"].gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      }
+
+      masterVolumeVal = 70;
+      bassEQVal = 0;
+      trebleEQVal = 0;
+      smoothVal = 50;
+
+      document.getElementById("masterVolume").value = 70;
+      document.getElementById("masterVolLabel").innerText = "70%";
+      document.getElementById("bassSlider").value = 0;
+      document.getElementById("bassLabel").innerText = "0.0 dB";
+      document.getElementById("trebleSlider").value = 0;
+      document.getElementById("trebleLabel").innerText = "0.0 dB";
+      document.getElementById("smoothSlider").value = 50;
+      document.getElementById("smoothLabel").innerText = "50%";
+
+      if (bassFilter && audioCtx) bassFilter.gain.setValueAtTime(0, audioCtx.currentTime);
+      if (trebleFilter && audioCtx) trebleFilter.gain.setValueAtTime(0, audioCtx.currentTime);
+      updateSmoothFilterFrequency(50);
+
+      renderSoundCards();
+      updateMixerRatios();
+      showToast("소리 조합이 초기화되었습니다.", "🔄");
+    }
+
+    /* Ratio Calculation & Bar rendering */
+    function updateMixerRatios() {
+      let activeTotal = 0;
+      const ratios = {};
+      let activeCount = 0;
+
+      SOUNDS.forEach(s => {
+        if (soundStates[s.id].enabled) {
+          activeTotal += soundStates[s.id].volume;
+          activeCount++;
+        }
+      });
+
+      const barContainer = document.getElementById("ratioBarContainer");
+      const legendContainer = document.getElementById("ratioLegendContainer");
+      document.getElementById("activeSoundCountBadge").innerText = `활성 소리: ${activeCount}개`;
+
+      barContainer.innerHTML = "";
+      legendContainer.innerHTML = "";
+
+      if (activeTotal === 0) {
+        barContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-[10px] text-slate-500">선택된 소리가 없습니다.</div>`;
+        return;
+      }
+
+      SOUNDS.forEach(s => {
+        if (soundStates[s.id].enabled) {
+          const pct = Math.round((soundStates[s.id].volume / activeTotal) * 100);
+          ratios[s.id] = pct;
+
+          // Bar segment
+          const seg = document.createElement("div");
+          seg.style.width = `${pct}%`;
+          seg.style.backgroundColor = s.color;
+          seg.className = "h-full transition-all duration-300 relative group";
+          seg.title = `${s.nameKo}: ${pct}%`;
+          barContainer.appendChild(seg);
+
+          // Legend item
+          const badge = document.createElement("div");
+          badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px]";
+          badge.innerHTML = `
+            <span class="w-2 h-2 rounded-full" style="background-color: ${s.color}"></span>
+            <span class="text-slate-200 font-medium">${s.nameKo}</span>
+            <span class="font-mono text-cyan-400 font-bold">${pct}%</span>
+          `;
+          legendContainer.appendChild(badge);
+        }
+      });
+
+      // Update feedback active sounds preview
+      const activeNames = SOUNDS.filter(s => soundStates[s.id].enabled).map(s => s.nameKo).join(", ");
+      document.getElementById("feedbackActiveSounds").innerText = activeNames || "없음";
+    }
+
+    /* Visualizer Animation */
+    let vizMode = 'waveform'; // or 'frequency'
+    function setVisualizerMode(mode) {
+      vizMode = mode;
+      document.getElementById("vizWaveBtn").className = mode === 'waveform' ? "text-[11px] px-2 py-0.5 rounded bg-brand-600 text-white font-medium" : "text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-medium";
+      document.getElementById("vizFreqBtn").className = mode === 'frequency' ? "text-[11px] px-2 py-0.5 rounded bg-brand-600 text-white font-medium" : "text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-medium";
+    }
+
+    function startVisualizer() {
+      const canvas = document.getElementById("visualizerCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+
+      function draw() {
+        requestAnimationFrame(draw);
+        if (!analyser) return;
+
+        // Resize support
+        if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+          canvas.width = canvas.clientWidth;
+          canvas.height = canvas.clientHeight;
+        }
+
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.fillStyle = "#020617";
+        ctx.fillRect(0, 0, width, height);
+
+        if (!isMasterPlaying) {
+          // Resting line
+          ctx.beginPath();
+          ctx.strokeStyle = "#1e293b";
+          ctx.lineWidth = 1.5;
+          ctx.moveTo(0, height / 2);
+          ctx.lineTo(width, height / 2);
+          ctx.stroke();
+          return;
+        }
+
+        if (vizMode === 'waveform') {
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyser.getByteTimeDomainData(dataArray);
+
+          ctx.lineWidth = 2.5;
+          const gradient = ctx.createLinearGradient(0, 0, width, 0);
+          gradient.addColorStop(0, '#10b981');
+          gradient.addColorStop(0.5, '#38bdf8');
+          gradient.addColorStop(1, '#6366f1');
+          ctx.strokeStyle = gradient;
+
+          ctx.beginPath();
+          const sliceWidth = width / bufferLength;
+          let x = 0;
+
+          for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = (v * height) / 2;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            x += sliceWidth;
+          }
+          ctx.lineTo(width, height / 2);
+          ctx.stroke();
+
+        } else {
+          // Frequency Bars
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyser.getByteFrequencyData(dataArray);
+
+          const barWidth = (width / bufferLength) * 2.2;
+          let x = 0;
+
+          for (let i = 0; i < bufferLength; i++) {
+            const barHeight = (dataArray[i] / 255) * height;
+            const gradient = ctx.createLinearGradient(0, height, 0, 0);
+            gradient.addColorStop(0, '#065f46');
+            gradient.addColorStop(0.6, '#10b981');
+            gradient.addColorStop(1, '#38bdf8');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+            x += barWidth;
+          }
+        }
+      }
+      draw();
+    }
+
+    /* Session Timer */
+    function startSessionTimer() {
+      if (sessionInterval) clearInterval(sessionInterval);
+      sessionInterval = setInterval(() => {
+        sessionSeconds++;
+        const mins = Math.floor(sessionSeconds / 60);
+        const secs = sessionSeconds % 60;
+        const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        document.getElementById("sessionTimerText").innerText = timeStr;
+        document.getElementById("feedbackDuration").innerText = `${mins}분 ${secs}초`;
+        document.getElementById("statListeningTime").innerText = `${mins}분`;
+        document.getElementById("statTimeBar").style.width = `${Math.min(100, mins * 5 + 10)}%`;
+      }, 1000);
+      document.getElementById("playingBadge").classList.remove("hidden");
+      document.getElementById("playingBadge").classList.add("flex");
+    }
+
+    function pauseSessionTimer() {
+      if (sessionInterval) clearInterval(sessionInterval);
+      document.getElementById("playingBadge").classList.add("hidden");
+      document.getElementById("playingBadge").classList.remove("flex");
+    }
+
+    function updatePlayButtonsUI() {
+      const headerBtn = document.getElementById("headerPlayBtn");
+      const headerText = document.getElementById("headerPlayText");
+      const studioIcon = document.getElementById("studioPlayIcon");
+
+      if (isMasterPlaying) {
+        headerText.innerText = "일시정지";
+        headerBtn.className = "flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition shadow-lg shadow-amber-600/25";
+        studioIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />`;
+      } else {
+        headerText.innerText = "재생";
+        headerBtn.className = "flex items-center space-x-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition shadow-lg shadow-brand-600/25";
+        studioIcon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />`;
+      }
+    }
+
+    /* Render 7 Sound Cards */
+    function renderSoundCards() {
+      const container = document.getElementById("soundCardsGrid");
+      container.innerHTML = "";
+
+      SOUNDS.forEach(s => {
+        const st = soundStates[s.id];
+        const card = document.createElement("div");
+        card.className = `rounded-2xl p-4 transition-all duration-200 border ${
+          st.enabled 
+            ? 'bg-slate-900/90 border-brand-500/50 shadow-lg shadow-brand-500/10' 
+            : 'bg-slate-900/40 border-slate-800 opacity-80'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${s.icon}</span>
+              <div>
+                <h4 class="text-sm font-bold text-white">${s.nameKo}</h4>
+                <span class="text-[10px] text-slate-400 block">${s.spectral}</span>
+              </div>
+            </div>
+            <!-- Toggle Switch -->
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" ${st.enabled ? 'checked' : ''} onchange="toggleSoundActive('${s.id}')" class="sr-only peer">
+              <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+            </label>
+          </div>
+
+          <p class="text-[11px] text-slate-400 line-clamp-2 mb-3 h-8">${s.desc}</p>
+
+          <div class="space-y-1.5 pt-1 border-t border-slate-800/80">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">음량</span>
+              <span id="vol-label-${s.id}" class="font-mono text-brand-400 font-semibold">${st.volume}%</span>
+            </div>
+            <input type="range" min="0" max="100" value="${st.volume}" oninput="updateSoundVolume('${s.id}', this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          </div>
+
+          <div class="mt-2.5 flex items-center justify-between text-[10px] text-slate-500">
+            <span class="font-mono">${st.mode === 'file' ? '📁 MP3 음원 파일' : '⚡ WebAudio 정밀합성'}</span>
+            <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400">${s.category}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    /* Optional Local MP3 File Loading */
+    function handleLocalFiles(event) {
+      initAudioContext();
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      let loadedCount = 0;
+      Array.from(files).forEach(file => {
+        const fname = file.name.toLowerCase();
+        let matchedId = null;
+
+        if (fname.includes("brown") || fname.includes("003")) matchedId = "brown_noise";
+        else if (fname.includes("pink") || fname.includes("011")) matchedId = "pink_noise";
+        else if (fname.includes("white") || fname.includes("023")) matchedId = "white_noise";
+        else if (fname.includes("wind") || fname.includes("096")) matchedId = "nature_wind";
+        else if (fname.includes("river") || fname.includes("063") || fname.includes("water")) matchedId = "water_river";
+        else if (fname.includes("rain") || fname.includes("104") || fname.includes("bird")) matchedId = "bird_rain";
+        else if (fname.includes("campfire") || fname.includes("fire") || fname.includes("mightuser")) matchedId = "campfire";
+
+        if (matchedId) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            audioCtx.decodeAudioData(e.target.result, (decoded) => {
+              soundStates[matchedId].audioBuffer = decoded;
+              soundStates[matchedId].mode = "file";
+              loadedCount++;
+              document.getElementById("loadedMp3Count").innerText = `${loadedCount}개 MP3 연동됨`;
+              renderSoundCards();
+              showToast(`${SOUNDS.find(s=>s.id===matchedId).nameKo} MP3 음원이 로드되었습니다!`, "🎵");
+            });
+          };
+          reader.readAsArrayBuffer(file);
+        }
+      });
+    }
+
+
+    /* =====================================================================
+       3. CLIENT-SIDE AI RECOMMENDATION & REINFORCEMENT ENGINE
+       ===================================================================== */
+    // User preference weights (starts equal normalized)
+    let userSoundWeights = {
+      brown_noise: 0.22,
+      water_river: 0.20,
+      pink_noise: 0.16,
+      nature_wind: 0.14,
+      campfire: 0.12,
+      bird_rain: 0.08,
+      white_noise: 0.08
+    };
+    let learnedBass = 1.5;
+    let learnedTreble = -0.5;
+    let learnedSmoothness = 60;
+    let feedbackHistory = [];
+    let savedPresets = [];
+
+    // Load from LocalStorage if available
+    function loadSavedData() {
+      try {
+        const w = localStorage.getItem("aurasound_weights");
+        if (w) userSoundWeights = JSON.parse(w);
+        const fb = localStorage.getItem("aurasound_history");
+        if (fb) feedbackHistory = JSON.parse(fb);
+        const pr = localStorage.getItem("aurasound_presets");
+        if (pr) savedPresets = JSON.parse(pr);
+      } catch(e){}
+      updateStatsUI();
+      renderSavedPresets();
+      renderFeedbackHistory();
+      renderMyPageCharts();
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem("aurasound_weights", JSON.stringify(userSoundWeights));
+        localStorage.setItem("aurasound_history", JSON.stringify(feedbackHistory));
+        localStorage.setItem("aurasound_presets", JSON.stringify(savedPresets));
+      } catch(e){}
+    }
+
+    /* Core AI Recommendation Generator */
+    function generateRecommendations() {
+      // Sort sounds by preference weights
+      const sorted = Object.entries(userSoundWeights).sort((a,b) => b[1] - a[1]);
+      const top1 = sorted[0][0];
+      const top2 = sorted[1][0];
+      const top3 = sorted[2][0];
+      const top1Name = SOUNDS.find(s=>s.id===top1).nameKo;
+      const top2Name = SOUNDS.find(s=>s.id===top2).nameKo;
+      const top3Name = SOUNDS.find(s=>s.id===top3).nameKo;
+
+      const recs = [
+        {
+          id: "rec_1",
+          tag: "🔥 1순위 맞춤",
+          title: `취향 몰입 베스트 믹스 (${top1Name} 중심)`,
+          description: `사용자 피드백 데이터에서 만족도가 가장 높았던 ${top1Name}을 베이스로 안정적인 차폐를 유도합니다.`,
+          ratios: {
+            [top1]: 50,
+            [top2]: 30,
+            [top3]: 20
+          },
+          eq: { bass: learnedBass, treble: learnedTreble, smooth: learnedSmoothness },
+          volume: 65,
+          confidence: Math.min(98, 75 + feedbackHistory.length * 4),
+          reason: `최근 ${top1Name}과 ${top2Name}을 함께 들었을 때 만족도가 높았으며, 저음 선호 경향(${learnedBass > 0 ? '+' : ''}${learnedBass.toFixed(1)}dB)이 발견되어 집중력을 극대화할 수 있도록 조합했습니다.`
+        },
+        {
+          id: "rec_2",
+          tag: "🌿 자연 힐링",
+          title: "안정 & 이완 밸런스 믹스",
+          description: "자연의 유기적인 리듬과 뇌파 동조 사운드를 결합하여 뇌 피로도를 완화하는 힐링 조합입니다.",
+          ratios: {
+            pink_noise: 40,
+            water_river: 35,
+            nature_wind: 25
+          },
+          eq: { bass: 0.0, treble: 1.0, smooth: 65 },
+          volume: 55,
+          confidence: 88,
+          reason: "1/f 핑크 노이즈와 시냇물 소리의 자연스러운 흐름이 긴장감을 풀어주고 뇌파를 알파(α)파 상태로 안정시킵니다."
+        },
+        {
+          id: "rec_3",
+          tag: "✨ 새로운 탐색",
+          title: "청각 리프레시 믹스 (Exploration)",
+          description: "소리의 단조로움을 방지하고 새로운 집중 자극을 위해 모닥불의 크랙클과 바람 소리를 가미했습니다.",
+          ratios: {
+            white_noise: 45,
+            campfire: 35,
+            bird_rain: 20
+          },
+          eq: { bass: -1.0, treble: 0.5, smooth: 45 },
+          volume: 60,
+          confidence: 82,
+          reason: "고주파 마스킹을 유지하면서 타닥타닥 타는 모닥불 소리를 조합하여 청각 피로 없이 긴 작업 시간을 유지하도록 돕습니다."
+        }
+      ];
+
+      return recs;
+    }
+
+    function recalculateAIRecommendations() {
+      renderRecommendations();
+      showToast("AI 모델이 최신 피드백을 기반으로 추천을 재계산했습니다.", "🤖");
+    }
+
+    function renderRecommendations() {
+      const recs = generateRecommendations();
+      const container = document.getElementById("aiRecommendationsContainer");
+      container.innerHTML = "";
+
+      // Also update dashboard featured rec
+      renderDashboardFeatured(recs[0]);
+
+      recs.forEach(rec => {
+        const card = document.createElement("div");
+        card.className = "glass-card rounded-2xl p-6 border border-slate-800 flex flex-col justify-between space-y-4 hover:border-slate-700 transition";
+
+        // Badges for ratios
+        let ratioBadges = "";
+        for (const [sid, pct] of Object.entries(rec.ratios)) {
+          const snd = SOUNDS.find(s=>s.id===sid);
+          ratioBadges += `
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style="background-color: ${snd.color}22; color: ${snd.color}; border: 1px solid ${snd.color}44">
+              <span>${snd.icon}</span>
+              <span>${snd.nameKo}</span>
+              <span class="font-mono">${pct}%</span>
+            </span>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold">
+                ${rec.tag}
+              </span>
+              <span class="text-xs font-mono text-cyan-400 font-bold">적합도 ${rec.confidence}%</span>
+            </div>
+
+            <h3 class="text-lg font-bold text-white">${rec.title}</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">${rec.description}</p>
+
+            <div class="flex flex-wrap gap-1.5 pt-2">
+              ${ratioBadges}
+            </div>
+
+            <!-- Explainable AI Box -->
+            <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800/90 text-[11px] text-slate-300 space-y-1">
+              <div class="flex items-center gap-1.5 font-bold text-cyan-400">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm.75 11.25a.75.75 0 01-1.5 0v-4.5a.75.75 0 011.5 0v4.5zm-.75-6.75a.875.875 0 110-1.75.875.875 0 010 1.75z"/></svg>
+                <span>AI 추천 근거 (XAI)</span>
+              </div>
+              <p class="leading-relaxed text-slate-400">${rec.reason}</p>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-800 space-y-2">
+            <button onclick='applyRecommendation(${JSON.stringify(rec)})' class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-lg shadow-brand-600/25 flex items-center justify-center gap-1.5">
+              <span>이 조합으로 즉시 듣기 (적용)</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+            <div class="flex gap-2">
+              <button onclick="voteRecommendation('${rec.id}', true)" class="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition flex items-center justify-center gap-1">
+                👍 마음에 들어요
+              </button>
+              <button onclick="voteRecommendation('${rec.id}', false)" class="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition flex items-center justify-center gap-1">
+                👎 별로예요
+              </button>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function renderDashboardFeatured(rec) {
+      const container = document.getElementById("dashboardFeaturedRec");
+      if (!container || !rec) return;
+
+      let ratioBadges = "";
+      for (const [sid, pct] of Object.entries(rec.ratios)) {
+        const snd = SOUNDS.find(s=>s.id===sid);
+        ratioBadges += `<span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-200">${snd.icon} ${snd.nameKo} <b>${pct}%</b></span> `;
+      }
+
+      container.innerHTML = `
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white">${rec.title}</span>
+            <span class="text-xs text-emerald-400 font-mono font-semibold">적합도 ${rec.confidence}%</span>
+          </div>
+          <div class="flex flex-wrap gap-1">${ratioBadges}</div>
+          <p class="text-xs text-slate-400 max-w-xl">${rec.reason}</p>
+        </div>
+        <button onclick='applyRecommendation(${JSON.stringify(rec)})' class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-lg shadow-brand-600/25 shrink-0 flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+          즉시 재생
+        </button>
+      `;
+    }
+
+    /* Apply Recommendation to Mixer */
+    function applyRecommendation(rec) {
+      initAudioContext();
+      // Turn off all sounds first
+      SOUNDS.forEach(s => {
+        soundStates[s.id].enabled = false;
+        soundStates[s.id].volume = 0;
+      });
+
+      // Apply recommended ratios
+      for (const [sid, pct] of Object.entries(rec.ratios)) {
+        if (soundStates[sid]) {
+          soundStates[sid].enabled = true;
+          soundStates[sid].volume = pct;
+        }
+      }
+
+      // Apply EQ
+      if (rec.eq) {
+        bassEQVal = rec.eq.bass || 0;
+        trebleEQVal = rec.eq.treble || 0;
+        smoothVal = rec.eq.smooth || 50;
+
+        document.getElementById("bassSlider").value = bassEQVal;
+        document.getElementById("bassLabel").innerText = `${bassEQVal > 0 ? '+' : ''}${bassEQVal.toFixed(1)} dB`;
+        document.getElementById("trebleSlider").value = trebleEQVal;
+        document.getElementById("trebleLabel").innerText = `${trebleEQVal > 0 ? '+' : ''}${trebleEQVal.toFixed(1)} dB`;
+        document.getElementById("smoothSlider").value = smoothVal;
+        document.getElementById("smoothLabel").innerText = `${smoothVal}%`;
+
+        if (bassFilter) bassFilter.gain.setValueAtTime(bassEQVal, audioCtx.currentTime);
+        if (trebleFilter) trebleFilter.gain.setValueAtTime(trebleEQVal, audioCtx.currentTime);
+        updateSmoothFilterFrequency(smoothVal);
+      }
+
+      if (rec.volume) {
+        masterVolumeVal = rec.volume;
+        document.getElementById("masterVolume").value = masterVolumeVal;
+        document.getElementById("masterVolLabel").innerText = `${masterVolumeVal}%`;
+        if (masterGain) masterGain.gain.setValueAtTime(masterVolumeVal / 100, audioCtx.currentTime);
+      }
+
+      renderSoundCards();
+      updateMixerRatios();
+
+      if (!isMasterPlaying) {
+        togglePlayMaster();
+      } else {
+        SOUNDS.forEach(s => {
+          if (soundStates[s.id].gainNode) {
+            soundStates[s.id].gainNode.gain.setValueAtTime(
+              soundStates[s.id].enabled ? (soundStates[s.id].volume / 100) : 0, 
+              audioCtx.currentTime
+            );
+          }
+        });
+      }
+
+      switchTab('studio');
+      showToast(`'${rec.title}' 조합이 스튜디오에 적용되었습니다!`, "🎧");
+    }
+
+    function voteRecommendation(recId, isPositive) {
+      if (isPositive) {
+        showToast("피드백 반영: 해당 추천 스타일에 높은 가중치를 부여합니다.", "👍");
+      } else {
+        showToast("피드백 반영: 해당 추천 스타일의 비중을 낮추고 대안을 탐색합니다.", "👎");
+      }
+    }
+
+
+    /* =====================================================================
+       4. SATISFACTION FEEDBACK & REINFORCEMENT LEARNING
+       ===================================================================== */
+    let currentStarRating = 5;
+
+    function setStarRating(val) {
+      currentStarRating = val;
+      document.getElementById("selectedStarValue").value = val;
+      const stars = document.querySelectorAll(".star-btn");
+      stars.forEach(s => {
+        const v = parseInt(s.dataset.val, 10);
+        if (v <= val) {
+          s.classList.remove("text-slate-600");
+          s.classList.add("text-yellow-400");
+        } else {
+          s.classList.remove("text-yellow-400");
+          s.classList.add("text-slate-600");
+        }
+      });
+
+      const labels = {
+        1: "1점 - 매우 불만족 (전면 개편 필요)",
+        2: "2점 - 불만족 (사운드 요소 변경 필요)",
+        3: "3점 - 보통 (일부 비율 미세 조정)",
+        4: "4점 - 만족 (현재 조합 유지 및 미세 조율)",
+        5: "5점 - 매우 만족 (현재 조합을 핵심 취향으로 학습)"
+      };
+      document.getElementById("starRatingLabel").innerText = labels[val] || `${val}점`;
+    }
+
+    function handleFeedbackSubmit(e) {
+      e.preventDefault();
+      const score = parseInt(document.getElementById("selectedStarValue").value, 10);
+      const volFb = document.getElementById("fbVolume").value;
+      const bassFb = document.getElementById("fbBass").value;
+      const trebleFb = document.getElementById("fbTreble").value;
+      const isMonotonous = document.getElementById("fbMonotonous").checked;
+      const addSound = document.getElementById("fbAddSound").value;
+      const removeSound = document.getElementById("fbRemoveSound").value;
+      const mood = document.getElementById("fbDesiredMood").value;
+      const details = document.getElementById("fbDetails").value;
+
+      // Current active sounds & ratios
+      const activeRatios = {};
+      let totalActive = 0;
+      SOUNDS.forEach(s => {
+        if (soundStates[s.id].enabled) {
+          activeRatios[s.id] = soundStates[s.id].volume;
+          totalActive += soundStates[s.id].volume;
+        }
+      });
+
+      // Reinforcement Algorithm
+      const lr = 0.25;
+      const impact = (score - 3) / 2.0; // 5점: +1.0, 4점: +0.5, 3점: 0, 2점: -0.5, 1점: -1.0
+
+      if (totalActive > 0) {
+        SOUNDS.forEach(s => {
+          const ratio = (activeRatios[s.id] || 0) / totalActive;
+          if (score >= 4) {
+            userSoundWeights[s.id] += lr * impact * ratio;
+          } else if (score <= 2) {
+            userSoundWeights[s.id] -= lr * Math.abs(impact) * ratio * 0.8;
+          }
+          userSoundWeights[s.id] = Math.max(0.04, userSoundWeights[s.id]);
+        });
+      }
+
+      // Bass & Treble feedback adjustments
+      if (bassFb === "too_strong") learnedBass = Math.max(-8, learnedBass - 1.5);
+      else if (bassFb === "too_weak") learnedBass = Math.min(8, learnedBass + 1.5);
+
+      if (trebleFb === "too_sharp") {
+        learnedTreble = Math.max(-8, learnedTreble - 1.5);
+        learnedSmoothness = Math.min(90, learnedSmoothness + 10);
+      } else if (trebleFb === "too_dull") {
+        learnedTreble = Math.min(8, learnedTreble + 1.5);
+      }
+
+      // Monotony adjustment -> Boost ambient/nature sounds
+      if (isMonotonous) {
+        userSoundWeights["campfire"] *= 1.4;
+        userSoundWeights["bird_rain"] *= 1.3;
+        userSoundWeights["water_river"] *= 1.2;
+      }
+
+      // Add / Remove wishes
+      if (addSound && userSoundWeights[addSound]) userSoundWeights[addSound] *= 1.5;
+      if (removeSound && userSoundWeights[removeSound]) userSoundWeights[removeSound] *= 0.4;
+
+      // Normalize weights so sum = 1.0
+      const sumW = Object.values(userSoundWeights).reduce((a,b)=>a+b, 0);
+      Object.keys(userSoundWeights).forEach(k => {
+        userSoundWeights[k] /= sumW;
+      });
+
+      // Save Log
+      const logEntry = {
+        timestamp: new Date().toLocaleTimeString(),
+        score: score,
+        activeSounds: Object.keys(activeRatios).map(k => SOUNDS.find(s=>s.id===k).nameKo),
+        duration: `${Math.floor(sessionSeconds/60)}분 ${sessionSeconds%60}초`,
+        details: details || "특이사항 없음",
+        bassFb: bassFb,
+        trebleFb: trebleFb,
+        mood: mood
+      };
+      feedbackHistory.unshift(logEntry);
+
+      saveToStorage();
+      updateStatsUI();
+      renderRecommendations();
+      renderFeedbackHistory();
+      renderMyPageCharts();
+
+      // Reset form text
+      document.getElementById("fbDetails").value = "";
+      showToast(`만족도 ${score}점 피드백이 AI 추천 모델에 반영되었습니다!`, "🎉");
+      switchTab('recommend');
+    }
+
+
+    /* =====================================================================
+       5. MY PAGE & PRESET MANAGEMENT
+       ===================================================================== */
+    function openSavePresetModal() {
+      document.getElementById("savePresetModal").classList.remove("hidden");
+    }
+
+    function closeSavePresetModal() {
+      document.getElementById("savePresetModal").classList.add("hidden");
+    }
+
+    function confirmSavePreset() {
+      const name = document.getElementById("presetNameInput").value.trim() || `내 소리 프리셋 #${savedPresets.length + 1}`;
+      const ratios = {};
+      SOUNDS.forEach(s => {
+        if (soundStates[s.id].enabled) {
+          ratios[s.id] = soundStates[s.id].volume;
+        }
+      });
+
+      const preset = {
+        id: "preset_" + Date.now(),
+        name: name,
+        ratios: ratios,
+        eq: { bass: bassEQVal, treble: trebleEQVal, smooth: smoothVal },
+        volume: masterVolumeVal,
+        createdAt: new Date().toLocaleDateString()
+      };
+
+      savedPresets.unshift(preset);
+      saveToStorage();
+      renderSavedPresets();
+      closeSavePresetModal();
+      document.getElementById("presetNameInput").value = "";
+      showToast(`'${name}' 프리셋이 저장되었습니다.`, "💾");
+    }
+
+    function renderSavedPresets() {
+      const container = document.getElementById("savedPresetsList");
+      document.getElementById("savedPresetsCount").innerText = `${savedPresets.length}개 저장됨`;
+      if (savedPresets.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500">저장된 나만의 프리셋이 없습니다.</p>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      savedPresets.forEach(pr => {
+        const item = document.createElement("div");
+        item.className = "p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between";
+        
+        let subText = Object.keys(pr.ratios).map(k => SOUNDS.find(s=>s.id===k).nameKo).join(", ");
+        item.innerHTML = `
+          <div>
+            <h5 class="text-xs font-bold text-white">${pr.name}</h5>
+            <span class="text-[10px] text-slate-400 block">${subText || '소리 없음'} (${pr.createdAt})</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick='loadPreset(${JSON.stringify(pr)})' class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-[11px] font-semibold text-white">불러오기</button>
+            <button onclick="deletePreset('${pr.id}')" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-red-900 text-[11px] text-slate-400 hover:text-red-300">&times;</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function loadPreset(pr) {
+      applyRecommendation({
+        title: pr.name,
+        ratios: pr.ratios,
+        eq: pr.eq,
+        volume: pr.volume
+      });
+    }
+
+    function deletePreset(id) {
+      savedPresets = savedPresets.filter(p => p.id !== id);
+      saveToStorage();
+      renderSavedPresets();
+      showToast("프리셋을 삭제했습니다.", "🗑️");
+    }
+
+    function renderFeedbackHistory() {
+      const container = document.getElementById("feedbackHistoryList");
+      document.getElementById("historyLogCount").innerText = `${feedbackHistory.length}건`;
+      if (feedbackHistory.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500">평가 이력이 아직 없습니다.</p>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      feedbackHistory.slice(0, 10).forEach(log => {
+        const item = document.createElement("div");
+        item.className = "p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1";
+        item.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="font-semibold text-yellow-400">${'★'.repeat(log.score)}${'☆'.repeat(5-log.score)} (${log.score}점)</span>
+            <span class="text-[10px] text-slate-500 font-mono">${log.timestamp} (${log.duration})</span>
+          </div>
+          <p class="text-[11px] text-slate-300">소리: ${log.activeSounds.join(', ')}</p>
+          ${log.details !== "특이사항 없음" ? `<p class="text-[10px] text-slate-400 italic">"${log.details}"</p>` : ''}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function renderMyPageCharts() {
+      const container = document.getElementById("soundPreferenceBars");
+      container.innerHTML = "";
+
+      const sorted = Object.entries(userSoundWeights).sort((a,b) => b[1] - a[1]);
+      sorted.forEach(([sid, weight]) => {
+        const snd = SOUNDS.find(s=>s.id===sid);
+        const pct = Math.round(weight * 100);
+
+        const row = document.createElement("div");
+        row.className = "space-y-1";
+        row.innerHTML = `
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-300 flex items-center gap-1.5">
+              <span>${snd.icon}</span>
+              <span>${snd.nameKo}</span>
+            </span>
+            <span class="font-mono text-cyan-400 font-bold">${pct}%</span>
+          </div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500" style="width: ${pct}%; background-color: ${snd.color}"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      // EQ profile indicators
+      document.getElementById("profileBassVal").innerText = `${learnedBass > 0 ? '+' : ''}${learnedBass.toFixed(1)} dB`;
+      document.getElementById("profileBassBar").style.width = `${Math.min(100, Math.max(10, (learnedBass + 8) / 16 * 100))}%`;
+
+      document.getElementById("profileTrebleVal").innerText = `${learnedTreble > 0 ? '+' : ''}${learnedTreble.toFixed(1)} dB`;
+      document.getElementById("profileTrebleBar").style.width = `${Math.min(100, Math.max(10, (learnedTreble + 8) / 16 * 100))}%`;
+
+      document.getElementById("profileSmoothVal").innerText = `${learnedSmoothness}%`;
+      document.getElementById("profileSmoothBar").style.width = `${learnedSmoothness}%`;
+    }
+
+    function updateStatsUI() {
+      document.getElementById("statFeedbacks").innerText = `${feedbackHistory.length}건`;
+      document.getElementById("statFeedbacksBar").style.width = `${Math.min(100, feedbackHistory.length * 20)}%`;
+
+      if (feedbackHistory.length > 0) {
+        const sum = feedbackHistory.reduce((acc, cur) => acc + cur.score, 0);
+        const avg = (sum / feedbackHistory.length).toFixed(1);
+        document.getElementById("statAvgRating").innerText = `${avg} / 5.0`;
+      }
+
+      // Top favorite sound
+      const top = Object.entries(userSoundWeights).sort((a,b)=>b[1]-a[1])[0];
+      const snd = SOUNDS.find(s=>s.id===top[0]);
+      document.getElementById("statFavoriteSound").innerText = snd.nameKo;
+      document.getElementById("statFavPct").innerText = `${Math.round(top[1]*100)}%`;
+    }
+
+    function exportUserData() {
+      const data = {
+        version: "1.0",
+        userSoundWeights: userSoundWeights,
+        learnedBass: learnedBass,
+        learnedTreble: learnedTreble,
+        learnedSmoothness: learnedSmoothness,
+        feedbackHistory: feedbackHistory,
+        savedPresets: savedPresets
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aurasound_profile_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("취향 및 학습 데이터가 다운로드되었습니다.", "📥");
+    }
+
+    function importUserData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data.userSoundWeights) userSoundWeights = data.userSoundWeights;
+          if (data.feedbackHistory) feedbackHistory = data.feedbackHistory;
+          if (data.savedPresets) savedPresets = data.savedPresets;
+          saveToStorage();
+          updateStatsUI();
+          renderRecommendations();
+          renderSavedPresets();
+          renderFeedbackHistory();
+          renderMyPageCharts();
+          showToast("데이터를 성공적으로 복원했습니다.", "📤");
+        } catch(err) {
+          alert("유효한 JSON 파일이 아닙니다.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+
+    /* =====================================================================
+       6. UI NAVIGATION & TOAST UTILITIES
+       ===================================================================== */
+    const TABS = ['dashboard', 'studio', 'recommend', 'feedback', 'mypage'];
+
+    function switchTab(targetTab) {
+      TABS.forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (t === targetTab) {
+          sec.classList.remove('hidden');
+          if (nav) {
+            nav.classList.add('text-white', 'bg-slate-800', 'shadow');
+            nav.classList.remove('text-slate-400');
+          }
+        } else {
+          sec.classList.add('hidden');
+          if (nav) {
+            nav.classList.remove('text-white', 'bg-slate-800', 'shadow');
+            nav.classList.add('text-slate-400');
+          }
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    let toastTimeout = null;
+    function showToast(message, icon = "✨") {
+      const toast = document.getElementById("toastMessage");
+      document.getElementById("toastText").innerText = message;
+      document.getElementById("toastIcon").innerText = icon;
+      toast.classList.remove("translate-y-20", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove("translate-y-0", "opacity-100");
+        toast.classList.add("translate-y-20", "opacity-0");
+      }, 3000);
+    }
+
+
+    /* =====================================================================
+       7. INITIALIZATION ON PAGE LOAD
+       ===================================================================== */
+    window.addEventListener("DOMContentLoaded", () => {
+      renderSoundCards();
+      updateMixerRatios();
+      loadSavedData();
+      renderRecommendations();
+    });
+  </script>
+</body>
+</html>
+
